@@ -201,6 +201,7 @@ public:
     double              MassEnv2() const                            { return m_MassEnv2; }
     bool                MassesEquilibrated() const                  { return m_Flags.massesEquilibrated; }
     bool                MassesEquilibratedAtBirth() const           { return m_Flags.massesEquilibratedAtBirth; }
+    bool                AccretorCHE() const                         { return m_Flags.accretorCHE; }//ll
     MT_TRACKING         MassTransferTrackerHistory() const          { return m_MassTransferTrackerHistory; }
     bool                MergesInHubbleTime() const                  { return m_Flags.mergesInHubbleTime; }
     bool                OptimisticCommonEnvelope() const            { return m_CEDetails.optimisticCE; }
@@ -316,6 +317,7 @@ private:
 
         bool massesEquilibrated;                                                            // Indicates whether stars had masses equilbrated at some stage after birth
         bool massesEquilibratedAtBirth;                                                     // Indicates whether stars had masses equilbrated at birth
+        bool accretorCHE;//ll
 
         bool mergesInHubbleTime;                                                            // Indicates if the stars merge in Hubble Time
 

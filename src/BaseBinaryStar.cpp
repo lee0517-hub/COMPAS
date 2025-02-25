@@ -390,6 +390,7 @@ void BaseBinaryStar::SetRemainingValues() {
 
     m_Flags.mergesInHubbleTime                       = false;
     m_Unbound                                        = false;
+    m_Flags.accretorCHE                              = false;  //ll
 
     m_SystemicVelocity                               = Vector3d();
     m_NormalizedOrbitalAngularMomentumVector         = Vector3d();
@@ -2133,6 +2134,26 @@ void BaseBinaryStar::CalculateMassTransfer(const double p_Dt) {
             if (m_Donor->StellarType() != stellarTypeDonor) {                                                                   // stellar type change?
                 (void)PrintDetailedOutput(m_Id, BSE_DETAILED_RECORD_TYPE::STELLAR_TYPE_CHANGE_DURING_MT);                       // yes - print (log) detailed output
             }
+            
+            ////ll
+            //Only the case of mass transfer from the primary to the secondary during the MS is considered.
+            if ((m_Star2->StellarType() == STELLAR_TYPE::MS_GT_07) && OPTIONS->CHEMode() != CHE_MODE::NONE && massGainAccretor > 1.0) {
+	            double massAccretor         = m_Accretor->Mass();
+	            //double massDonor            = m_Donor->Mass();
+                double RadiusAccretor       = m_Accretor->Radius() * RSOL_TO_AU;
+                double DiffAM2              = massGainAccretor * std::sqrt(G_AU_Msol_yr * massAccretor * RadiusAccretor); //The AM carried by the mass transfer material, following SEVN code.
+	            double AngularMomentumStar2 = m_Accretor->CalculateMomentOfInertiaAU() * m_Accretor->Omega() + DiffAM2;
+	            double Omega2               = AngularMomentumStar2/(0.4*massAccretor*RadiusAccretor*RadiusAccretor); //Recalculate the angular velocity of the accreting star according to the formula J=I*Ω, where I=0.4MR^2.
+	            m_Star2->SetOmega(Omega2);   
+				//SAY("Omega2: " << Omega2);
+	            //SAY("OmegaCHE: " << m_Star2->OmegaCHE());
+				if (utils::Compare(Omega2, m_Star2->OmegaCHE()) >= 0) {  
+				    if (m_Accretor->StellarType() != STELLAR_TYPE::CHEMICALLY_HOMOGENEOUS) { 
+				        (void)m_Star2->SwitchTo(STELLAR_TYPE::CHEMICALLY_HOMOGENEOUS, true);  
+				        m_Flags.accretorCHE = true;  
+				    }  
+				}
+            }
         
             // Check if this was stable mass transfer after a CEE
             if (m_CEDetails.CEEcount > 0 && !m_RLOFDetails.stableRLOFPostCEE) {
@@ -2553,7 +2574,8 @@ void BaseBinaryStar::ProcessTides(const double p_Dt) {
                 // do nothing, except for CHE stars which are allowed to remain CHE
 
                 // if at least one star is CHE, then circularize the binary and synchronize only the CHE stars conserving total angular momentum
-                if (OPTIONS->CHEMode() != CHE_MODE::NONE && HasOneOf({STELLAR_TYPE::CHEMICALLY_HOMOGENEOUS})) {                 // one CHE star?
+                bool tide = false; //ll
+                if (OPTIONS->CHEMode() != CHE_MODE::NONE && HasOneOf({STELLAR_TYPE::CHEMICALLY_HOMOGENEOUS}) && tide) {                 // one CHE star?
                     double che_I1   = 0.0;
                     double che_I2   = 0.0;
                     double che_Ltot = CalculateOrbitalAngularMomentum(m_Star1->Mass(), m_Star2->Mass(), m_SemiMajorAxis, m_Eccentricity);
